@@ -2,7 +2,6 @@
 
 import re
 import time
-import jieba
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
@@ -172,7 +171,7 @@ if __name__ == "__main__":
     #print(data)
     dataSplit = wordSplit(data)
     print('分词完成')
-    saveFile('F:/Data_Mining/Data_set/AAAI_14/jie.txt', dataSplit)  # 保存分词结果
+    saveFile('F:/Data_Mining/Data_set/AAAI_14/word-split.txt', dataSplit)  # 保存分词结果
     word, weight = TFIDF(dataSplit)  # 生成 tfidf 矩阵
     weightPCA = weight
  
