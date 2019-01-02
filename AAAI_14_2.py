@@ -26,7 +26,7 @@ def loadDataSet(filename):
     dataID = dataset.values[:,0]
     return data.reshape((m,1)), dataID.reshape((m,1))
 
-# numpy 转化为 list
+# 转化为 list
 def ndarrayToList(dataArr):
     dataList = []
     m, n = dataArr.shape
@@ -34,36 +34,26 @@ def ndarrayToList(dataArr):
         for j in range(n):
             dataList.append(dataArr[i,j])
     return dataList
- 
-# 去掉字符串、特殊符号
-def removeStr(listData):
-    strData = "".join(listData)
-    removeStrData = re.sub("[\s+\!\,$^*()+\"\'\\]+:|[+——！，,《》“”〔【】；：。？、�./-~@#￥……&*（）]+", "",strData)
-    return removeStrData
 
 # 对数据集分词、去停用词
 def wordSplit(data):
     # stopword = open('F:/Data_Mining/Data_set/AAAI_14/stopwords.txt', 'r', encoding = 'utf-8').read()
     stopwords = [line.strip() for line in open('F:/Data_Mining/Data_set/AAAI_14/stopwords.txt','r',encoding = 'utf-8').readlines()]
     word = ndarrayToList(data)
-    #print(word)
     m = len(word)
-    #print(m)
     wordList = []
     
     for i in range(0,m):
         print(i)
-        #rowListRemoveStr = removeStr(word[i])    # 去特殊符号
-        #print(rowListRemoveStr)
         #line = line.strip()  #去前后的空格
-        #word[i] = re.sub(r"[0-9\s+\.\!\/_,$%^*()?;；:-【】+\"\']+|[+——！，;:。？、~@#￥%……&*（）]+", " ", word[i]) #去标点符号
-        rowList = [eachWord for eachWord in word_tokenize(word[i])]  # 分词
-        print(rowList)
+        word[i] = re.sub(r"[\s+\.\!\/_,$%^*()+\"\']+|[+——！，。？?、~@#￥%……&*（）]+", " ", word[i]) #去特殊符号
+        rowList = [eachWord for eachWord in word_tokenize(word[i])]     # 分词
         removeStopwordList = []
         for eachword in rowList:
-            if eachword not in stopwords and eachword != '\t' and eachword != ' ' :
+            if eachword not in stopwords and eachword != '\t' and eachword != ' ' :     #去停用词
                 removeStopwordList.append(eachword)
         wordList.append(removeStopwordList)
+        print(removeStopwordList)
     return wordList
 
 # 保存文件
@@ -116,7 +106,7 @@ def kmeans(matrix, k):
 
 # DBSCAN聚类
 def dbscan(matrix):
-    clusterer = DBSCAN(eps = 4, min_samples = 2)
+    clusterer = DBSCAN(eps = 0.5, min_samples = 7)
     y = clusterer.fit_predict(matrix)
     return y
 
@@ -145,45 +135,48 @@ def Draw(silhouette_avg, sample_silhouette_values, y, k):
 
         size_cluster_i = ith_cluster_silhouette_values.shape[0]
         y_upper = y_lower + size_cluster_i
-        # color = cm.Spectral(float(i)/k)
-        ax1.fill_betweenx(np.arange(y_lower, y_upper),
-                          0,
-                          ith_cluster_silhouette_values,
-                          facecolor = 'gray',
-                          #edgecolor = 'gray',
-                          #alpha=0.7
-                          )
+
+        ax1.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_silhouette_values, facecolor = 'gray', alpha=0.7)
         # 在轮廓系数点这里加上聚类的类别号
         ax1.text(-0.05, y_lower + 0.5 * size_cluster_i, str(i))
         # 计算下一个点的 y_lower y轴位置
         y_lower = y_upper + 10
-    # 在图里搞一条垂直的评论轮廓系数虚线
     ax1.axvline(x=silhouette_avg, color='red', linestyle="--")
     plt.show()
 
+
 if __name__ == "__main__":
     
-    # start time
+    # 开始时间start time
     start = time.perf_counter()
-    k = 10  # 聚成12类
-    # jieba.load_userdict('F:/Data_Mining/Data_set/AAAI_14/user_dict.txt')  # 添加分词字典
+
+    k = 10  # 聚成10类
+
+    # 读入数据集
     data, dataId = loadDataSet('F:/Data_Mining/Data_set/AAAI_14/AAAI-14 Accepted Papers - Papers.csv')
-    #print(data)
+    
+    # 分词并保存分词结果
     dataSplit = wordSplit(data)
     print('分词完成')
-    saveFile('F:/Data_Mining/Data_set/AAAI_14/word-split.txt', dataSplit)  # 保存分词结果
-    word, weight = TFIDF(dataSplit)  # 生成 tfidf 矩阵
-    weightPCA = weight
- 
-    # 将原始矩阵降维，降维后效果反而没有不降维的好
-    # weightPCA = matrixPCA(weight) 
-    # y = birch(weightPCA, k)
-    y = kmeans(weightPCA, k)
-    # y = dbscan(weightPCA)
+    saveFile('F:/Data_Mining/Data_set/AAAI_14/word-split.txt', dataSplit)
 
-    silhouette_avg, sample_silhouette_values = Silhouette(weightPCA, y) # 轮廓系数
-    Draw(silhouette_avg, sample_silhouette_values, y, k)
-    
+    # 生成 tfidf 矩阵
+    word, weight = TFIDF(dataSplit)  
+    weightPCA = weight
+
+    # 降维
+    # weightPCA = matrixPCA(weight) 
+
+    # 聚类
+    # y = kmeans(weightPCA, k)
+    # y = birch(weightPCA, k)
+    y = dbscan(weightPCA)
+
+    # 计算程序运行时间
     elapsed = (time.perf_counter() - start)
     print('Time use', elapsed)
 
+    # 计算轮廓系数并画图
+    silhouette_avg, sample_silhouette_values = Silhouette(weightPCA, y)
+    Draw(silhouette_avg, sample_silhouette_values, y, k)
+    
